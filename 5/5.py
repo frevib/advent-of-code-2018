@@ -7,7 +7,7 @@ minimum = 10000000
 
 def polymer_react(replaced_input, which_char):
 	global minimum
-	input = replaced_input
+	input = replaced_inputi
 
 	counter = 1
 	while (counter < (len(input)-1)):
