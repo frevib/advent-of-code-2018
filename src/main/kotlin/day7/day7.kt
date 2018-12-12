@@ -1,3 +1,5 @@
+package day7
+
 import kotlin.collections.HashMap
 
 val inputReal = """Step R must be finished before step Y can begin.

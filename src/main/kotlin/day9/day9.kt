@@ -1,3 +1,5 @@
+package day9
+
 import java.lang.RuntimeException
 import java.util.*
 import kotlin.collections.HashMap
