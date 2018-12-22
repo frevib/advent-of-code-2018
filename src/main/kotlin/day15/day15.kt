@@ -1,15 +1,13 @@
 package day15
-
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.math.absoluteValue
-import kotlin.system.exitProcess
 
 
 fun main() {
     val input = readFile("src/main/resources/day15.txt")
-    star1(input)
+    star1(input, 3)
+    star2(input)
 }
 
 fun readFile(filePath: String): Array<String> {
@@ -43,9 +41,8 @@ private class Node(
 
 class FindPathResult(val path: List<Pair<Int, Int>>, val enemy: Character?, val direction: Direction)
 
-class Character(var position: Pair<Int, Int>, var type: CharacterType) {
+class Character(var position: Pair<Int, Int>, var type: CharacterType, var attackPower: Int) {
 
-    var attackPower = 3
     var hitPoints = 200
 
     fun attack(enemy: Character) {
@@ -169,7 +166,7 @@ class Character(var position: Pair<Int, Int>, var type: CharacterType) {
 
 }
 
-fun star1(input: Array<String>) {
+fun star1(input: Array<String>, elfAttackPower: Int): Int {
 
     // create area
     val area = Array(input[0].length) { Array(input.size) { 'x' } }
@@ -182,11 +179,11 @@ fun star1(input: Array<String>) {
         line.withIndex().forEach { (indexItem, item) ->
             when (item) {
                 'G' -> {
-                    goblins.add(Character(Pair(indexItem, indexLine), CharacterType.G))
+                    goblins.add(Character(Pair(indexItem, indexLine), CharacterType.G, 3))
                     area[indexItem][indexLine] = '.'
                 }
                 'E' -> {
-                    elfs.add(Character(Pair(indexItem, indexLine), CharacterType.E))
+                    elfs.add(Character(Pair(indexItem, indexLine), CharacterType.E, elfAttackPower))
                     area[indexItem][indexLine] = '.'
                 }
                 else -> {
@@ -232,14 +229,15 @@ fun star1(input: Array<String>) {
             if (enemies.size == 0) {
                 val totalHitPoints = allCharactersSorted.filterNot { it -> it in deadCharacters }.map { it -> it.hitPoints }.sum()
 
-                println("game ended at round: $round, total hitpoints: $totalHitPoints. Answer star 1: ${round*totalHitPoints}")
+                println("game ended at round: $round, total hit points: $totalHitPoints. Total hit points * round: ${round*totalHitPoints}")
+//                printArea(area, allCharactersSorted.filterNot { it -> it in deadCharacters })
+//                printHitPoints(allCharactersSorted.filterNot { it -> it in deadCharacters })
 
-                printArea(area, allCharactersSorted.filterNot { it -> it in deadCharacters })
-                printHitPoints(allCharactersSorted.filterNot { it -> it in deadCharacters })
-
-                exitProcess(0)
+                return allCharactersSorted
+                        .filter { it -> it.type == CharacterType.E }
+                        .filterNot { it -> it in deadCharacters }
+                        .count()
             }
-
 
             val findPathResults = character.findPath(enemies, area, allies)
 
@@ -281,12 +279,13 @@ fun star1(input: Array<String>) {
                     character.position = readingOrderPath.path[0]
                 }
             }
-
-
         }
 
-//        println("round: $round")
+        println("round: $round")
     }
+
+    // this shouldn't happen, just return some number
+    return 1337
 }
 
 
@@ -306,9 +305,29 @@ fun printArea(area: Array<Array<Char>>, allCharactersSorted: List<Character>) {
     }
 }
 
+
+fun star2(input: Array<String>) {
+
+    val elvesCount = input
+            .map { line -> line.count {char -> char == 'E'} }
+            .sum()
+    var attackPower = 4
+
+    while (true) {
+        val elvesLeft = star1(input, attackPower)
+        println("elves left: $elvesLeft")
+
+        if (elvesLeft == elvesCount) {
+            println("with attack power $attackPower, elves will live")
+            break
+        }
+        attackPower++
+    }
+
+}
+
 fun printHitPoints(allCharactersSorted: List<Character>) {
     allCharactersSorted.forEach { println("${it.type}: HP: ${it.hitPoints}") }
-
 }
 
 private operator fun Pair<Int, Int>.plus(otherPair: Pair<Int, Int>): Pair<Int, Int> {
