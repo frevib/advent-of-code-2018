@@ -20,17 +20,6 @@ fun readFile(filePath: String): Array<String> {
 fun star1(inputLines: Array<String>) {
 
     // max value needed for area size
-    val maxValue = inputLines
-            .asSequence()
-            .map { line ->
-                val values =
-                        Regex("(\\w=)(\\d{1,4})(,\\s)(\\w=)(\\d{1,4})(\\.\\.)(\\d{1,4})").find(line)!!.destructured
-                listOf(values.component2(), values.component5(), values.component7())
-            }
-            .flatten()
-            .map { number -> number.toInt() }
-            .max()!!
-
     val maxXvalue = inputLines
             .map { line ->
                 val xValues = Regex("(?:x=)(\\d{1,4})(?:\\.\\.)?(\\d{1,4})?").find(line)!!.destructured.toList()
@@ -54,11 +43,8 @@ fun star1(inputLines: Array<String>) {
     println("max Y value: $maxYvalue")
 
 
-
-    println("max X value: $maxValue")
-
     // make slice area
-    var area = Array(maxYvalue + 1) { Array(maxXvalue + 1) { '.' } }
+    var area = Array(maxXvalue + 1) { Array(maxYvalue + 1) { '.' } }
 
     // fill area with clay
     for (line in inputLines) {
@@ -66,135 +52,109 @@ fun star1(inputLines: Array<String>) {
             val x = Regex("x=(\\d{1,4})").find(line)!!.destructured.component1().toInt()
             val (y1, y2) = Regex("(\\d{1,4}\\.\\.\\d{1,4})").find(line)!!.value.split("..")
             for (y in y1.toInt()..y2.toInt()) {
-                area[y][x] = '#'
+                area[x][y] = '#'
             }
         } else if (line.first() == 'y') {
             val y = Regex("y=(\\d{1,4})").find(line)!!.destructured.component1().toInt()
             val (x1, x2) = Regex("(\\d{1,4}\\.\\.\\d{1,4})").find(line)!!.value.split("..")
             for (x in x1.toInt()..x2.toInt()) {
-                area[y][x] = '#'
+                area[x][y] = '#'
             }
         }
     }
-
 
     val waterSourcePosition = Pair(500, 0)
 
-//    val newArea = goDown(area, waterSourcePosition)
-
+    val newArea = goDown(area, waterSourcePosition)
 
     printArea(area)
 
-
 }
 
-fun goDown(area: Array<Array<Char>>, position: Pair<Int, Int>) {
+fun goDown(area: Array<Array<Char>>, position: Pair<Int, Int>): Boolean {
 
-    var currentPosition: Pair<Int, Int> = position.copy()
+    var currentPosition = position.copy()
 
-    for (i in 0..300) {
+    var leftCliff: Boolean
+    var rightCliff: Boolean
+
+//    for (i in 0..300) {
+    while (true) {
         currentPosition += Direction.DOWN.getCoords()
 
-        if (currentPosition.second > 200) {
-            printArea(area)
-            exitProcess(0)
-            return
-        }
 
-        if (area[currentPosition.first][currentPosition.second] == '#') {
-
-            // check if it's a reservoir and fill
-            for (i in 1..100) {
-                currentPosition += Direction.UP.getCoords()
-
-                val boundaryLeft = hasBoundary(area, currentPosition, Direction.LEFT)
-                val boundaryRight = hasBoundary(area, currentPosition, Direction.RIGHT)
-
-                if (boundaryLeft) {
-                    // fill till boundary
-                    fillLayer(area, currentPosition, Direction.LEFT)
-                }
-
-                if (boundaryRight) {
-                    // fill till boundary
-                    fillLayer(area, currentPosition, Direction.RIGHT)
-                }
-
-                if (!boundaryLeft || !boundaryRight) {
-                    break
-                }
-            }
-
-            goSideWays(area, currentPosition, Direction.LEFT)
-            goSideWays(area, currentPosition, Direction.RIGHT)
-            return
-        }
-
-        currentPosition = currentPosition
-        area[currentPosition.first][currentPosition.second] = '|'
-
-    }
-}
-
-
-fun hasBoundary(area: Array<Array<Char>>, position: Pair<Int, Int>, direction: Direction): Boolean {
-
-    var nextPosition = position.copy()
-    var downPosition = position.copy()
-    for (i in 1..100) {
-        nextPosition += direction.getCoords()
-        downPosition = nextPosition + Direction.DOWN.getCoords()
-        if (area[nextPosition.first][nextPosition.second] == '#') {
+        if (currentPosition.second > 400) {
+//            printArea(area)
+//            exitProcess(0)
             return true
         }
 
+//        if (area[currentPosition.first][currentPosition.second] == '~') {
+//            return true
+//        }
 
-        if (area[downPosition.first][downPosition.second] == '.') {
-            return false
+
+        val currentItem = area[currentPosition.first][currentPosition.second]
+        if (currentItem == '#' || currentItem == '~') {
+
+            // check if it's a reservoir and fill
+//            for (i in 1..300) {
+            while (true) {
+                currentPosition += Direction.UP.getCoords()
+
+                area[currentPosition.first][currentPosition.second] = '|'
+
+                // go left and go right and fill up
+
+                leftCliff = goSideWays(area, currentPosition, Direction.LEFT)
+                rightCliff = goSideWays(area, currentPosition, Direction.RIGHT)
+
+                if (leftCliff || rightCliff) {
+                    return true
+                }
+
+                if (currentPosition == Pair(500, 0)) {
+                    return true
+                }
+            }
         }
+
+        area[currentPosition.first][currentPosition.second] = '|'
     }
-    return false
+
+    // execution should not reach here
+//    return true
 }
 
-fun fillLayer(area: Array<Array<Char>>, position: Pair<Int, Int>, direction: Direction) {
 
-    var nextPosition = position.copy()
-    // check left
-    for (i in 0..100) {
-        nextPosition += direction.getCoords()
-        if (area[nextPosition.first][nextPosition.second] != '#') {
-            area[nextPosition.first][nextPosition.second] = '~'
-        } else {
-            return
-        }
-    }
-}
-
-fun goSideWays(area: Array<Array<Char>>, position: Pair<Int, Int>, direction: Direction) {
+fun goSideWays(area: Array<Array<Char>>, position: Pair<Int, Int>, direction: Direction): Boolean {
     var currentPosition = position.copy()
 
-    for (i in 0..100) {
+//    for (i in 0..300) {
 
-        val nextPosition = currentPosition + direction.getCoords()
+    while (true) {
+        currentPosition += direction.getCoords()
         val positionBelow = currentPosition + Direction.DOWN.getCoords()
 
 //        if (nextPosition.first > 1400) {
 //            return
 //        }
 
-        if (area[nextPosition.first][nextPosition.second] == '#') {
-            return
+        val currentItem = area[currentPosition.first][currentPosition.second]
+        if (currentItem == '#') {
+            return false
         }
-
+//
         if (area[positionBelow.first][positionBelow.second] == '.') {
-            goDown(area, currentPosition)
-            return
+            return goDown(area, currentPosition)
         }
 
-        currentPosition += direction.getCoords()
-        area[currentPosition.first][currentPosition.second] = '|'
+//        currentPosition += direction.getCoords()
+        area[currentPosition.first][currentPosition.second] = '~'
     }
-    return
+
+    // execution should not reach here
+//    return true
 }
 
 
@@ -213,9 +173,10 @@ enum class Direction(val direction: Pair<Int, Int>) {
 
 fun printArea(area: Array<Array<Char>>) {
 
-    for (y in 0 until area.size) {
-        for (x in 400 until area[0].size) {
-            print(area[y][x])
+    for (y in 0 until area[0].size) {
+        print(y.toString().padStart(4, '0'))
+        for (x in 400 until area.size) {
+            print(area[x][y])
         }
         println("")
     }
