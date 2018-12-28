@@ -6,8 +6,8 @@ import java.io.File
 fun main() {
     val inputLines = readFile("src/main/resources/day18.txt")
 
-    star1(inputLines, 10)
-    star2(inputLines, 1000)
+    star1(inputLines, 10, "star1")
+    star2(inputLines, 1000, "star2")
 
 }
 
@@ -18,9 +18,9 @@ fun readFile(filePath: String): Array<String> {
     return inputLines.toTypedArray()
 }
 
-fun star1(input: Array<String>, iterations: Int) {
+fun star1(input: Array<String>, iterations: Int, star: String) {
 
-    // make area
+    // make 2d area
     var area = Array(input[0].length) {Array(input.size){ '.' }}
     input.forEachIndexed { y, line ->
         line.forEachIndexed { x, char ->
@@ -30,28 +30,30 @@ fun star1(input: Array<String>, iterations: Int) {
 
     val elementCount = mutableMapOf<String, Int>()
 
+    // iterate over each cell
     (1..iterations).forEach { iteration ->
 
         val areaCopy = area.map { it.clone() }.toTypedArray()
         area.forEachIndexed { x, array ->
             array.forEachIndexed { y, _ ->
-                val adjacents = adjacents(Pair(x, y), area)
 
+                // check adjacent items for each cell
+                val adjacents = adjacents(Pair(x, y), area)
                 when (area[x][y]) {
-                    '.' -> {
+                    '.' -> { // if two adjacent empty, transform to tree
                         if (adjacents.trees > 2) {
                             areaCopy[x][y] = '|'
                         }
                     }
-                    '|' -> {
+                    '|' -> { // if two adjacent trees, transform to lumberyard
                         if (adjacents.lumberyard > 2) {
                             areaCopy[x][y] = '#'
                         }
                     }
-                    '#' -> {
+                    '#' -> { // if at least one tree and one lumberyard, keep lumberyard
                         if (adjacents.trees > 0 && adjacents.lumberyard > 0) {
 
-                        } else {
+                        } else { // if not, empty cell
                             areaCopy[x][y] = '.'
                         }
                     }
@@ -61,25 +63,28 @@ fun star1(input: Array<String>, iterations: Int) {
 
         area = areaCopy
 
+        // find pattern in cycles (cycle detection) by counting all | and #
         val wood =  area.map { y -> y.count { element -> element == '|' } }.sum()
         val lumberyard =  area.map { y -> y.count { element -> element == '#' } }.sum()
 
-        if (elementCount.containsKey(wood.toString()+lumberyard.toString())) {
-            println("same total at iteration: ${elementCount[(wood.toString()+lumberyard.toString())]}")
-            println("difference in iterations: ${iteration - elementCount[(wood.toString()+lumberyard.toString())]!!}")
+        if (elementCount.containsKey(wood.toString() + lumberyard.toString())) {
+//            println("same total at iteration: ${elementCount[(wood.toString()+lumberyard.toString())]}")
+//            println("difference in iterations: ${iteration - elementCount[(wood.toString()+lumberyard.toString())]!!}")
         }
 
-        elementCount[wood.toString()+lumberyard.toString()] = iteration
+        elementCount[wood.toString() + lumberyard.toString()] = iteration
 
     }
 
-    printArea(area)
+//    printArea(area)
     val wood =  area.map { y -> y.count { element -> element == '|' } }.sum()
     val lumberyard =  area.map { y -> y.count { element -> element == '#' } }.sum()
     val answerStar1 = wood * lumberyard
-    println("answer star1: $answerStar1")
+
+    println("answer $star: $answerStar1")
 
 }
+
 
 class AdjacentAcres(var empty: Int, var trees: Int, var lumberyard: Int)
 
@@ -115,8 +120,8 @@ fun adjacents(position: Pair<Int, Int>, area: Array<Array<Char>>): AdjacentAcres
 
 }
 
-fun star2(input: Array<String>, iterations: Int) {
-    star1(input, iterations)
+fun star2(input: Array<String>, iterations: Int, star: String) {
+    star1(input, iterations, star)
 }
 
 private operator fun Pair<Int, Int>.plus(otherPair: Pair<Int, Int>): Pair<Int, Int> {
