@@ -25,7 +25,7 @@ fun react(replacedInput: String, char: Char) {
     }
 
     println("char replaced: ${(char)}")
-    println("input length: ${input.length}")
+    println("currentRegisters length: ${input.length}")
 }
 
 for (i in 'a'..'z') {
