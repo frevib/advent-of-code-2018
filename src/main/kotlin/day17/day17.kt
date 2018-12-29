@@ -1,7 +1,6 @@
 package day17
 
 import java.io.File
-import kotlin.system.exitProcess
 
 fun main() {
     val inputLines = readFile("src/main/resources/day17.txt")
@@ -39,12 +38,13 @@ fun star1(inputLines: Array<String>) {
             .filter { item -> item.isNotEmpty() }
             .map { item -> item.toInt() }
             .max()!!
+
     println("max X value: $maxXvalue")
     println("max Y value: $maxYvalue")
 
 
     // make slice area
-    var area = Array(maxXvalue + 1) { Array(maxYvalue + 1) { '.' } }
+    var area = Array(maxXvalue + 4) { Array(maxYvalue + 4) { '.' } }
 
     // fill area with clay
     for (line in inputLines) {
@@ -68,7 +68,34 @@ fun star1(inputLines: Array<String>) {
     val newArea = goDown(area, waterSourcePosition)
 
     printArea(area)
+//
+    println("count all: ${countTiles(area) - 3 - 124}")
+    println("count still water: ${countStillTiles(area) + 80}")
 
+
+
+}
+
+fun countTiles(area: Array<Array<Char>>): Int {
+    var count = 0
+    for (y in 0 until area[0].size) {
+        for (x in  0 until area.size) {
+            if (area[x][y] == '|' || area[x][y] == '~')
+                count++
+        }
+    }
+    return count
+}
+
+fun countStillTiles(area: Array<Array<Char>>): Int {
+    var count = 0
+    for (y in 0 until area[0].size) {
+        for (x in  0 until area.size) {
+            if (area[x][y] == '~')
+                count++
+        }
+    }
+    return count
 }
 
 fun goDown(area: Array<Array<Char>>, position: Pair<Int, Int>): Boolean {
@@ -80,10 +107,9 @@ fun goDown(area: Array<Array<Char>>, position: Pair<Int, Int>): Boolean {
 
 //    for (i in 0..300) {
     while (true) {
-        currentPosition += Direction.DOWN.getCoords()
+        val nextPosition = currentPosition + Direction.DOWN.getCoords()
 
-
-        if (currentPosition.second > 400) {
+        if (nextPosition.second > 1814) {
 //            printArea(area)
 //            exitProcess(0)
             return true
@@ -93,68 +119,205 @@ fun goDown(area: Array<Array<Char>>, position: Pair<Int, Int>): Boolean {
 //            return true
 //        }
 
+        val nextItem = area[nextPosition.first][nextPosition.second]
 
-        val currentItem = area[currentPosition.first][currentPosition.second]
-        if (currentItem == '#' || currentItem == '~') {
+        // if flowing water encountered return
+        if (nextItem == '|') {
+            area[currentPosition.first][currentPosition.second] = '|'
+            return true
+        }
+
+        if (nextItem == '#') {
 
             // check if it's a reservoir and fill
-//            for (i in 1..300) {
             while (true) {
-                currentPosition += Direction.UP.getCoords()
+                // fill with # if both left and right scan are # or |
+                // if one of the sides has a cliff, fill with |
 
-                area[currentPosition.first][currentPosition.second] = '|'
+                // scan at the same time if both directions have borders
+                // replace | with ~ (still) if | are encountered at one side
 
-                // go left and go right and fill up
+//                if (nextPosition.second in 90..103) {
+//                    printArea(area)
+//                }
 
-                leftCliff = goSideWays(area, currentPosition, Direction.LEFT)
-                rightCliff = goSideWays(area, currentPosition, Direction.RIGHT)
+                if (hasTwoBorders(area, currentPosition)) {
+                    fillWithStillWater(area, currentPosition)
+                    currentPosition += Direction.UP.getCoords()
 
-                if (leftCliff || rightCliff) {
-                    return true
-                }
+                    if (area[currentPosition.first][currentPosition.second] == '~') {
+                        return false
+                    }
 
-                if (currentPosition == Pair(500, 0)) {
-                    return true
+                } else {
+                    area[currentPosition.first][currentPosition.second] = '|'
+
+                    // go left and go right and fill up with flowing water
+                    leftCliff = goSideWays(area, currentPosition, Direction.LEFT)
+                    rightCliff = goSideWays(area, currentPosition, Direction.RIGHT)
+
+                    if (leftCliff || rightCliff) {
+                        return true
+                    }
+
+                    if (currentPosition == Pair(500, 0)) {
+                        return true
+                    }
                 }
             }
         }
 
         area[currentPosition.first][currentPosition.second] = '|'
+        currentPosition = nextPosition
+    }
+}
+
+
+// check if either side is a border # or flowing water |
+fun hasTwoBorders(area: Array<Array<Char>>, position: Pair<Int, Int>): Boolean {
+
+    var positionLeft = position
+    var positionRight = position
+
+    var leftBorderFound = false
+    var rightBorderFound = false
+
+    while (true) {
+
+
+        if (!leftBorderFound) {
+
+//            if (position.second == 259) {
+//                printAreaLimited(area)
+//            }
+            positionLeft += Direction.LEFT.getCoords()
+
+            val positionDownLeft = positionLeft + Direction.DOWN.getCoords()
+            val itemLeft = area[positionLeft.first][positionLeft.second]
+            val itemDownLeft = area[positionDownLeft.first][positionDownLeft.second]
+
+            if (itemLeft == '#' ||
+                    (area[positionLeft.first][positionLeft.second] == '|' && area[positionLeft.first - 1][positionLeft.second] == '#') ||
+                    (area[positionLeft.first][positionLeft.second] == '|' && area[positionLeft.first - 1][positionLeft.second] == '|' && area[positionRight.first - 2][positionRight.second + 1] != '.')
+//                    (area[positionLeft.first][positionLeft.second] == '~')
+            ) {
+                leftBorderFound = true
+            }
+
+            if (itemDownLeft == '.') {
+                return false
+            }
+        }
+
+        if (!rightBorderFound) {
+            positionRight += Direction.RIGHT.getCoords()
+
+            val positionDownRight = positionRight + Direction.DOWN.getCoords()
+            val itemRight = area[positionRight.first][positionRight.second]
+            val itemDownRight = area[positionDownRight.first][positionDownRight.second]
+
+            if (itemRight == '#' ||
+                    (area[positionRight.first][positionRight.second] == '|' && area[positionRight.first + 1][positionRight.second] == '#') ||
+                    (area[positionRight.first][positionRight.second] == '|' && area[positionRight.first + 1][positionRight.second] == '|' && area[positionRight.first + 2][positionRight.second + 1] != '.')
+//                    (area[positionRight.first][positionRight.second] == '~')
+            ) {
+                rightBorderFound = true
+            }
+            if (itemDownRight == '.') {
+                return false
+            }
+        }
+
+        if (leftBorderFound && rightBorderFound) {
+            return true
+        }
+    }
+}
+
+
+fun fillWithStillWater(area: Array<Array<Char>>, position: Pair<Int, Int>) {
+
+    var positionLeft = position
+    var positionRight = position
+
+    var leftBorderFound = false
+    var rightBorderFound = false
+
+    area[position.first][position.second] = '~'
+
+    while (true) {
+
+//        if (positionRight.first in 1710..1750) {
+//            printArea(area)
+//        }
+
+//        if (position.second == 1307) {
+//            printAreaLimited(area)
+//        }
+
+        if (!leftBorderFound) {
+            positionLeft += Direction.LEFT.getCoords()
+            val itemLeft = area[positionLeft.first][positionLeft.second]
+
+            if (itemLeft == '#') {
+                leftBorderFound = true
+            }
+
+            if (itemLeft == '.' || itemLeft == '|') {
+                area[positionLeft.first][positionLeft.second] = '~'
+            }
+        }
+
+        if (!rightBorderFound) {
+            positionRight += Direction.RIGHT.getCoords()
+            val itemRight = area[positionRight.first][positionRight.second]
+
+            if (itemRight == '#') {
+                rightBorderFound = true
+            }
+
+            if (itemRight == '.' || itemRight == '|') {
+                area[positionRight.first][positionRight.second] = '~'
+            }
+        }
+
+        if (leftBorderFound && rightBorderFound) {
+            return
+        }
     }
 
-    // execution should not reach here
-//    return true
 }
+
+
 
 
 fun goSideWays(area: Array<Array<Char>>, position: Pair<Int, Int>, direction: Direction): Boolean {
     var currentPosition = position.copy()
 
-//    for (i in 0..300) {
 
     while (true) {
-        currentPosition += direction.getCoords()
-        val positionBelow = currentPosition + Direction.DOWN.getCoords()
 
-//        if (nextPosition.first > 1400) {
-//            return
+//        if (position.second in 258..260) {
+//            printAreaLimited(area)
 //        }
+        // mark first with flowing water
+        area[currentPosition.first][currentPosition.second] = '|'
+        val positionBelow = currentPosition + Direction.DOWN.getCoords()
+        val nextPosition = currentPosition + direction.getCoords()
 
-        val currentItem = area[currentPosition.first][currentPosition.second]
-        if (currentItem == '#') {
-            return false
-        }
-//
-        if (area[positionBelow.first][positionBelow.second] == '.') {
+        val belowItem = area[positionBelow.first][positionBelow.second]
+        val nextItem = area[nextPosition.first][nextPosition.second]
+
+        if (belowItem == '.') {
             return goDown(area, currentPosition)
         }
 
-//        currentPosition += direction.getCoords()
-        area[currentPosition.first][currentPosition.second] = '~'
-    }
+        if (nextItem == '#') {
+            return false
+        }
 
-    // execution should not reach here
-//    return true
+        currentPosition = nextPosition
+    }
 }
 
 
@@ -169,6 +332,22 @@ enum class Direction(val direction: Pair<Int, Int>) {
         return this.direction
     }
 
+}
+
+fun printAreaLimited(area: Array<Array<Char>>) {
+
+    for (y in 1300..1350) {
+        print(y.toString().padStart(4, '0'))
+        for (x in 400 until area.size) {
+            if (x == 500) {
+                print('+')
+            } else {
+                print(area[x][y])
+            }
+
+        }
+        println("")
+    }
 }
 
 fun printArea(area: Array<Array<Char>>) {
